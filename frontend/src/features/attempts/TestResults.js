@@ -8,7 +8,7 @@ import {
   getTestResults,
   updateTestResult,
 } from "@/features/attempts/attemptsApi";
-import { getTestCaseOptions } from "@/lib/options";
+import { getTestCases } from "@/features/activities/activitiesApi";
 
 // Test results of one attempt. The test case dropdown lists the attempt's activity's test cases.
 export default function TestResults({ attempt }) {
@@ -22,7 +22,7 @@ export default function TestResults({ attempt }) {
     try {
       const [resultList, testCaseList] = await Promise.all([
         getTestResults(attemptId),
-        getTestCaseOptions(activityId),
+        getTestCases(activityId),
       ]);
       setResults(resultList);
       setTestCases(testCaseList);
