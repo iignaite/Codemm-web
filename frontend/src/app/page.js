@@ -9,6 +9,18 @@ export default function Home() {
         <li>
           <Link href="/users">Users</Link>
         </li>
+        <li>
+          <Link href="/goals">Goals</Link>
+        </li>
+        <li>
+          <Link href="/roadmaps">Roadmaps and roadmap items</Link>
+        </li>
+        <li>
+          <Link href="/activities">Activities and test cases</Link>
+        </li>
+        <li>
+          <Link href="/attempts">Attempts and test results</Link>
+        </li>
       </ul>
     </main>
   );
