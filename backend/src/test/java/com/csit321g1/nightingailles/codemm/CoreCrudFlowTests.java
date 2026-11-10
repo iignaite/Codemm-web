@@ -113,6 +113,28 @@ class CoreCrudFlowTests {
     }
 
     @Test
+    void attemptNoStaysUniqueAfterDelete() throws Exception {
+        long userId = idOf(postJson("/api/users",
+                "{\"name\":\"Cy\",\"email\":\"cy@cit.edu\",\"password\":\"password123\",\"role\":\"LEARNER\"}"),
+                "userId");
+        long trackId = idOf(postJson("/api/tracks", "{\"title\":\"C\",\"language\":\"c\"}"), "trackId");
+        long lessonId = idOf(postJson("/api/lessons",
+                "{\"trackId\":%d,\"title\":\"Arrays\",\"position\":1}".formatted(trackId)), "lessonId");
+        long activityId = idOf(postJson("/api/activities", """
+                {"lessonId":%d,"statement":"Sum","difficulty":"EASY","status":"DRAFT"}
+                """.formatted(lessonId)), "activityId");
+        String body = "{\"userId\":%d,\"activityId\":%d,\"code\":\"x\",\"score\":0}".formatted(userId, activityId);
+
+        long first = idOf(postJson("/api/attempts", body), "attemptId");
+        postJson("/api/attempts", body);
+        mockMvc.perform(delete("/api/attempts/" + first)).andExpect(status().isNoContent());
+
+        org.junit.jupiter.api.Assertions.assertEquals(3,
+                objectMapper.readTree(postJson("/api/attempts", body)).get("attemptNo").asInt(),
+                "a new attempt after a delete must not reuse attemptNo 2");
+    }
+
+    @Test
     void trackCrudRejectsDuplicateTitle() throws Exception {
         long id = idOf(postJson("/api/tracks",
                 "{\"title\":\"Python\",\"language\":\"PYTHON\",\"description\":\"Basics\"}"), "trackId");

@@ -46,8 +46,11 @@ public class AttemptService {
     public AttemptResponse create(AttemptRequest request) {
         AttemptEntity e = new AttemptEntity();
         apply(e, request);
-        e.setAttemptNo((int) attemptRepository.countByUserUserIdAndActivityActivityId(
-                request.userId(), request.activityId()) + 1);
+        // Next number after the learner's highest one, so a deleted attempt's number is never reused.
+        e.setAttemptNo(attemptRepository
+                .findTopByUserUserIdAndActivityActivityIdOrderByAttemptNoDesc(request.userId(), request.activityId())
+                .map(last -> last.getAttemptNo() + 1)
+                .orElse(1));
         return AttemptResponse.from(attemptRepository.save(e));
     }
 
