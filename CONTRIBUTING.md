@@ -6,7 +6,8 @@
 4. Run the checks:
    - `cd backend && ./mvnw test`
    - `cd frontend && npm run lint && npm run build`
-5. Commit with a clear message, e.g. `Add track CRUD endpoints (#1)`. No co-author lines.
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org), e.g.
+   `feat(track): add tracks page (#1)` or `fix(lesson): sort lessons by position (#2)`. No co-author lines.
 6. `git push -u origin <branch>` and open a pull request to `main` with `Closes #<issue>` in the body.
    Ask a teammate to review; Gaille merges.
 

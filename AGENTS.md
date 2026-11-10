@@ -73,7 +73,11 @@ src/lib/api.js                   base URL from NEXT_PUBLIC_API_BASE_URL
 ## 4. Git and GitHub
 
 - Branch from `main`: `feat/<issue-number>-<short-name>`, `fix/...`, `docs/...`.
-- Commit messages: imperative and specific, e.g. `Add lesson CRUD endpoints (#3)`.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):
+  `<type>(<optional scope>): <imperative summary> (#<issue>)`, lowercase, no trailing period.
+  Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`. Examples:
+  `feat(lesson): add lesson CRUD endpoints (#3)`, `fix(attempt): keep attemptNo unique (#4)`.
+- Pull request titles use the same format.
 - **No co-author lines and no AI attribution** in commits or pull requests.
 - Open a pull request to `main` that says `Closes #<issue>`; another member reviews it.
 - Never commit `.env*` files (except `.env.example`), `target/`, `node_modules/` or `.next/`.
