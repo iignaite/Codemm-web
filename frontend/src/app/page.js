@@ -21,6 +21,9 @@ export default function Home() {
         <li>
           <Link href="/attempts">Attempts and test results</Link>
         </li>
+        <li>
+          <Link href="/tracks">Tracks</Link>
+        </li>
       </ul>
     </main>
   );
