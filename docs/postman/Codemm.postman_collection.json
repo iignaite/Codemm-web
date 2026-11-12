@@ -1150,7 +1150,7 @@
       "name": "Activities",
       "item": [
         {
-          "name": "Create activitie",
+          "name": "Create activity",
           "request": {
             "method": "POST",
             "header": [
@@ -1255,7 +1255,7 @@
           ]
         },
         {
-          "name": "Get activitie by ID",
+          "name": "Get activity by ID",
           "request": {
             "method": "GET",
             "header": [],
@@ -1284,7 +1284,7 @@
           ]
         },
         {
-          "name": "Update activitie",
+          "name": "Update activity",
           "request": {
             "method": "PUT",
             "header": [
@@ -1965,7 +1965,7 @@
           ]
         },
         {
-          "name": "Delete activitie",
+          "name": "Delete activity",
           "request": {
             "method": "DELETE",
             "header": [],
