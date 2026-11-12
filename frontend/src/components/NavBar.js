@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/roadmaps", label: "Roadmaps" },
   { href: "/activities", label: "Activities" },
   { href: "/attempts", label: "Attempts" },
+  { href: "/tracks", label: "Tracks" },
 ];
 
 export default function NavBar() {
