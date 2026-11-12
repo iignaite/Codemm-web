@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Codemm Back End</title>
+<style>
+@page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font: 10pt/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1d2430; margin: 0; }
+h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 4pt; letter-spacing: -0.3pt; }
+.sub { color: #5b6472; font-size: 11pt; margin: 0 0 18pt; }
+h2 { font-size: 15pt; margin: 0 0 8pt; padding-top: 2pt; border-bottom: 1.5pt solid #1f6feb; padding-bottom: 4pt; }
+h3 { font-size: 11.5pt; margin: 14pt 0 6pt; }
+section.chap { break-before: page; }
+section.chap.first { break-before: auto; }
+p { margin: 0 0 8pt; }
+ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+li { margin-bottom: 3pt; }
+code { font: 8.4pt/1.4 "SF Mono", Menlo, Consolas, monospace; color: #24292f; word-break: break-word; }
+pre { font: 8.6pt/1.45 "SF Mono", Menlo, monospace; background: #f6f8fa; border: 0.75pt solid #d8dee4; border-radius: 4pt; padding: 9pt 11pt; margin: 0 0 10pt; white-space: pre; break-inside: avoid; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 10pt; font-size: 9pt; break-inside: auto; }
+th { text-align: left; background: #f1f4f8; font-weight: 600; }
+th, td { border: 0.75pt solid #d8dee4; padding: 4pt 6pt; vertical-align: top; }
+tr { break-inside: avoid; }
+.steps { table-layout: fixed; }
+.steps th:nth-child(1) { width: 13%; } .steps th:nth-child(2) { width: 11%; }
+.steps th:nth-child(3) { width: 32%; } .steps th:nth-child(4) { width: 28%; } .steps th:nth-child(5) { width: 16%; }
+.steps code { font-size: 7.8pt; }
+.first-col td:first-child { white-space: nowrap; }
+.res { break-inside: avoid; }
+.m { display: inline-block; min-width: 38pt; font: 600 7.6pt/1 -apple-system, Helvetica, sans-serif; padding: 2pt 4pt; border-radius: 3pt; color: #fff; text-align: center; margin-right: 2pt; }
+.post { background: #b26b00; } .get { background: #1a7f37; } .put { background: #1f6feb; } .delete { background: #cf222e; }
+.diagram { margin: 6pt 0 14pt; break-inside: avoid; }
+.diagram pre.mermaid { background: none; border: 0; padding: 0; margin: 0; white-space: normal; text-align: center; }
+.diagram svg { width: 100% !important; max-width: 100% !important; height: auto !important; }
+.diagram.tall svg { max-height: 205mm !important; }
+figure { margin: 0 0 14pt; break-inside: avoid; }
+figure img { width: 100%; border: 0.75pt solid #d0d7de; border-radius: 4pt; }
+figcaption { font-size: 8.8pt; color: #5b6472; margin-top: 4pt; }
+.shots figure { width: 84%; margin: 0 auto 12pt; }
+</style></head><body>
+
+<section class="chap first">
+<h1>Codemm Back End</h1>
+<p class="sub">Structure, data model and API testing · Software Increment 1</p>
+
+<h2>System architecture</h2>
+<p>Codemm-web has two parts that talk only through JSON over HTTP. The Next.js front end and Postman are both clients of the same Spring Boot REST API, which stores data in MySQL through Spring Data JPA.</p>
+<div class="diagram"><pre class="mermaid">flowchart LR
+  B[&quot;Browser&quot;] --&gt; FE[&quot;Next.js front end&lt;br/&gt;localhost:3000&quot;]
+  FE --&gt;|&quot;JSON over HTTP&quot;| BE[&quot;Spring Boot REST API&lt;br/&gt;localhost:8080&lt;br/&gt;&lt;br/&gt;Controller → Service → Repository&quot;]
+  PM[&quot;Postman&quot;] --&gt;|&quot;JSON over HTTP&quot;| BE
+  BE --&gt;|&quot;Spring Data JPA&quot;| DB[(&quot;MySQL&lt;br/&gt;dbcodemm&quot;)]</pre></div>
+<table class='first-col'><thead><tr><th>Part</th><th>Technology</th><th>Location</th></tr></thead><tbody>
+<tr><td>Front end</td><td>Next.js 15, React 19, JavaScript</td><td><code>frontend/</code> · port 3000</td></tr>
+<tr><td>Back end</td><td>Spring Boot 3.5, Java 17, Spring Web, Spring Data JPA, Validation</td><td><code>backend/</code> · port 8080</td></tr>
+<tr><td>Database</td><td>MySQL (XAMPP), H2 in memory for automated tests</td><td><code>dbcodemm</code>, tables <code>tbl*</code></td></tr>
+<tr><td>Build</td><td>Maven wrapper (<code>./mvnw</code>)</td><td>group <code>com.csit321g1.nightingailles</code>, artifact <code>codemm</code></td></tr>
+</tbody></table>
+</section>
+
+<section class="chap">
+<h2>Back-end structure</h2>
+<p>The code is packaged by feature, then by layer. Every feature has the same five sub-packages, so each of the ten entities is built the same way.</p>
+<pre>com.csit321g1.nightingailles.codemm
+├── CodemmApplication.java          entry point (@SpringBootApplication)
+├── common
+│   ├── config                      CorsConfig, PasswordConfig (BCrypt)
+│   └── exception                   GlobalExceptionHandler, ApiError,
+│                                   ResourceNotFoundException (404), ConflictException (409)
+├── user                            reference feature
+│   ├── entity                      UserEntity, Role
+│   ├── repository                  UserRepository
+│   ├── dto                         UserRequest, UserResponse
+│   ├── service                     UserService
+│   └── controller                  UserController   →  /api/users
+├── track      lesson      goal     same five sub-packages
+├── roadmap                         RoadmapEntity, RoadmapItemEntity (+ enums)
+├── activity                        ActivityEntity, TestCaseEntity (+ enums)
+└── attempt                         AttemptEntity, TestResultEntity</pre>
+<h3>Layers</h3>
+<div class="diagram"><pre class="mermaid">flowchart LR
+  REQ([&quot;Request&lt;br/&gt;JSON&quot;]) --&gt; CTRL[&quot;&lt;b&gt;Controller&lt;/b&gt;&lt;br/&gt;routes · @Valid&quot;]
+  CTRL --&gt;|&quot;XxxRequest&quot;| SVC[&quot;&lt;b&gt;Service&lt;/b&gt;&lt;br/&gt;rules · @Transactional&quot;]
+  SVC --&gt; REPO[&quot;&lt;b&gt;Repository&lt;/b&gt;&lt;br/&gt;JpaRepository&quot;]
+  REPO --&gt; ENT[&quot;&lt;b&gt;Entity&lt;/b&gt;&lt;br/&gt;@Entity tblxxx&quot;]
+  ENT --&gt; DB[(&quot;MySQL&quot;)]
+  SVC -.-&gt;|&quot;XxxResponse&quot;| CTRL
+  CTRL -.-&gt;|&quot;errors&quot;| EH[&quot;&lt;b&gt;GlobalExceptionHandler&lt;/b&gt;&lt;br/&gt;ApiError 400 · 404 · 409&quot;]</pre></div>
+<table class='first-col'><thead><tr><th>Layer</th><th>Responsibility</th><th>Never does</th></tr></thead><tbody>
+<tr><td>Controller</td><td>Maps <code>/api/&lt;plural&gt;</code> routes, validates the body with <code>@Valid</code>, returns DTOs and status codes</td><td>Call a repository or hold business rules</td></tr>
+<tr><td>DTO</td><td><code>XxxRequest</code> and <code>XxxResponse</code> Java records; foreign keys are plain IDs</td><td>Expose entities or password hashes</td></tr>
+<tr><td>Service</td><td>Business rules, foreign-key lookups, duplicate checks, transactions</td><td>Know about HTTP</td></tr>
+<tr><td>Repository</td><td>Database access through <code>JpaRepository</code> and derived queries</td><td>Hold rules</td></tr>
+<tr><td>Entity</td><td>Maps one table; <code>@PrePersist</code> sets timestamps</td><td>Leave the server</td></tr>
+</tbody></table>
+</section>
+
+<section class="chap">
+<h2>Request lifecycle</h2>
+<p>Example: creating a goal. The same flow applies to every POST and PUT.</p>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant P as Postman / Next.js
+  participant C as GoalController
+  participant S as GoalService
+  participant R as Repositories
+  participant D as MySQL
+  P-&gt;&gt;C: POST /api/goals {userId, trackId, ...}
+  C-&gt;&gt;C: @Valid GoalRequest (400 if invalid)
+  C-&gt;&gt;S: create(request)
+  S-&gt;&gt;R: userRepository.findById, trackRepository.findById
+  R-&gt;&gt;D: SELECT
+  alt user or track missing
+    S--&gt;&gt;P: ResourceNotFoundException → 404 ApiError
+  end
+  S-&gt;&gt;R: goalRepository.save(goal)
+  R-&gt;&gt;D: INSERT INTO tblgoal (@PrePersist sets createdAt)
+  S--&gt;&gt;C: GoalResponse.from(goal)
+  C--&gt;&gt;P: 201 Created + Location /api/goals/{id}</pre></div>
+<h3>Error responses</h3>
+<p><code>GlobalExceptionHandler</code> turns every exception into the same <code>ApiError</code> JSON body.</p>
+<table><thead><tr><th>Cause</th><th>Status</th></tr></thead><tbody>
+<tr><td>Failed <code>@Valid</code> check (body includes <code>fieldErrors</code>)</td><td>400 Bad Request</td></tr>
+<tr><td>Unreadable JSON or invalid argument</td><td>400 Bad Request</td></tr>
+<tr><td><code>ResourceNotFoundException</code> (missing ID or foreign key)</td><td>404 Not Found</td></tr>
+<tr><td><code>ConflictException</code> (duplicate email or track title), database constraint</td><td>409 Conflict</td></tr>
+</tbody></table>
+<pre>{ "timestamp": "2026-11-12T08:36:03Z", "status": 404, "error": "Not Found",
+  "message": "Goal 9999 was not found", "path": "/api/goals/9999", "fieldErrors": null }</pre>
+<h3>Design rules</h3>
+<ul>
+<li>Constructor injection only; dependencies are <code>private final</code>.</li>
+<li>Class-level <code>@Transactional</code> on services; read methods use <code>readOnly = true</code>.</li>
+<li>Passwords are hashed with BCrypt and never returned by the API.</li>
+<li>Child foreign keys use <code>ON DELETE CASCADE</code>: deleting a parent removes its children.</li>
+<li><code>attemptNo</code> is assigned by the server as the learner's highest attempt number on that activity plus one.</li>
+<li>CORS allows only the front-end origin (<code>http://localhost:3000</code>).</li>
+<li>MockMvc tests run the full CRUD flow against H2: <code>./mvnw test</code>.</li>
+</ul>
+</section>
+
+<section class="chap">
+<h2>Data model</h2>
+<p>The ten core entities from the ERD, one table each. Each line joins one parent row to many child rows.</p>
+<div class="diagram tall"><pre class="mermaid">erDiagram
+  tbluser ||--o{ tblgoal : sets
+  tbltrack ||--o{ tblgoal : &quot;is target of&quot;
+  tbltrack ||--o{ tbllesson : contains
+  tblgoal ||--o{ tblroadmap : has
+  tblroadmap ||--o{ tblroadmapitem : lists
+  tbllesson ||--o{ tblroadmapitem : &quot;appears in&quot;
+  tbllesson ||--o{ tblactivity : has
+  tblactivity ||--o{ tbltestcase : &quot;graded by&quot;
+  tbluser ||--o{ tblattempt : submits
+  tblactivity ||--o{ tblattempt : receives
+  tblattempt ||--o{ tbltestresult : produces
+  tbltestcase ||--o{ tbltestresult : &quot;checked in&quot;
+  tbluser { bigint user_id PK
+    varchar email UK
+    varchar password_hash
+    varchar role }
+  tbltrack { bigint track_id PK
+    varchar title UK
+    varchar language }
+  tbllesson { bigint lesson_id PK
+    bigint track_id FK
+    int position }
+  tblgoal { bigint goal_id PK
+    bigint user_id FK
+    bigint track_id FK
+    varchar depth }
+  tblroadmap { bigint roadmap_id PK
+    bigint goal_id FK
+    varchar status }
+  tblroadmapitem { bigint item_id PK
+    bigint roadmap_id FK
+    bigint lesson_id FK
+    varchar status }
+  tblactivity { bigint activity_id PK
+    bigint lesson_id FK
+    varchar difficulty
+    varchar status }
+  tbltestcase { bigint test_id PK
+    bigint activity_id FK
+    bit is_hidden }
+  tblattempt { bigint attempt_id PK
+    bigint user_id FK
+    bigint activity_id FK
+    int attempt_no
+    int score }
+  tbltestresult { bigint result_id PK
+    bigint attempt_id FK
+    bigint test_id FK
+    bit passed }</pre></div>
+</section>
+
+<section class="chap">
+<h2>Endpoints</h2>
+<p>Base URL <code>http://localhost:8080</code>. Every resource has the same five endpoints.</p>
+<table><thead><tr><th>Method</th><th>Path</th><th>Success</th><th>Errors</th></tr></thead><tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/&lt;resource&gt;</code></td><td>200, array</td><td>–</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/&lt;resource&gt;/{id}</code></td><td>200, object</td><td>404</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/&lt;resource&gt;</code></td><td>201, object, <code>Location</code> header</td><td>400, 404, 409</td></tr>
+<tr><td><span class="m put">PUT</span></td><td><code>/api/&lt;resource&gt;/{id}</code></td><td>200, object</td><td>400, 404, 409</td></tr>
+<tr><td><span class="m delete">DELETE</span></td><td><code>/api/&lt;resource&gt;/{id}</code></td><td>204, no body</td><td>404</td></tr>
+</tbody></table>
+<table><thead><tr><th>Resource</th><th>Filter</th><th>Request body (POST, PUT)</th><th>Response adds</th></tr></thead><tbody><tr><td><code>/api/users</code></td><td>–</td><td>name, email, password (min 8; optional on PUT), role</td><td>userId, createdAt</td></tr><tr><td><code>/api/tracks</code></td><td>–</td><td>title (unique), language, description</td><td>trackId</td></tr><tr><td><code>/api/lessons</code></td><td><code>?trackId=</code></td><td>trackId, title, content, position (≥ 1)</td><td>lessonId</td></tr><tr><td><code>/api/goals</code></td><td><code>?userId=</code></td><td>userId, trackId, description, priorKnowledge, depth</td><td>goalId, createdAt</td></tr><tr><td><code>/api/roadmaps</code></td><td><code>?goalId=</code></td><td>goalId, status</td><td>roadmapId, createdAt</td></tr><tr><td><code>/api/roadmap-items</code></td><td><code>?roadmapId=</code></td><td>roadmapId, lessonId, position (≥ 1), status</td><td>itemId</td></tr><tr><td><code>/api/activities</code></td><td><code>?lessonId=</code></td><td>lessonId, statement, starterCode, referenceSolution, difficulty, status</td><td>activityId</td></tr><tr><td><code>/api/test-cases</code></td><td><code>?activityId=</code></td><td>activityId, input, expectedOutput, hidden</td><td>testId</td></tr><tr><td><code>/api/attempts</code></td><td><code>?activityId=</code></td><td>userId, activityId, code, score (0–100)</td><td>attemptId, attemptNo, submittedAt</td></tr><tr><td><code>/api/test-results</code></td><td><code>?attemptId=</code></td><td>attemptId, testId, passed, actualOutput</td><td>resultId</td></tr></tbody></table>
+</section>
+
+<section class="chap">
+<h2>Testing with Postman</h2>
+<h3>Setup</h3>
+<ol>
+<li>Start MySQL (XAMPP) on port 3306. The <code>dbcodemm</code> database is created on first run.</li>
+<li>Start the back end: <code>cd backend</code>, then <code>./mvnw spring-boot:run</code>.</li>
+<li>In Postman, choose <b>Import</b> and select <code>docs/postman/Codemm.postman_collection.json</code>.</li>
+<li>Send the requests folder by folder, top to bottom. Each <b>Create</b> request saves the new ID in a collection variable (for example <code>{{userId}}</code>) that later requests use.</li>
+<li>To run everything at once, open the collection and choose <b>Run</b>. The last folder deletes the test data, so the run can be repeated.</li>
+</ol>
+<p>Every request has a test that checks the status code; the <b>Test Results</b> tab shows pass or fail.</p>
+<h3>Examples</h3>
+<div class="shots">
+<figure><img src='postman/screenshots/01-users-create.jpg'><figcaption>POST /api/users returns 201 Created and the new userId.</figcaption></figure>
+<figure><img src='postman/screenshots/02-users-get-by-id.jpg'><figcaption>GET /api/users/{{userId}} returns the saved user without the password.</figcaption></figure>
+<figure><img src='postman/screenshots/03-users-update.jpg'><figcaption>PUT /api/users/{{userId}} returns 200 OK with the updated name.</figcaption></figure>
+<figure><img src='postman/screenshots/04-error-400.jpg'><figcaption>POST with an empty body returns 400 and the failing fields.</figcaption></figure>
+</div>
+</section>
+
+<section class="chap">
+<h2>Test steps per endpoint</h2>
+<p>Run the resources in this order, because each one needs the IDs created before it. Delete in reverse order (test results first, users last), or delete a parent to remove its children.</p>
+<section class='res'><h3>Users</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/users</code></td><td><code>{&quot;name&quot;: &quot;Ada Lovelace&quot;, &quot;email&quot;: &quot;ada@cit.edu&quot;, &quot;password&quot;: &quot;password123&quot;, &quot;role&quot;: &quot;LEARNER&quot;}</code></td><td>201 Created; saves <code>{{userId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/users</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/users/{{userId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/users/{{userId}}</code></td><td><code>{&quot;name&quot;: &quot;Ada L.&quot;, &quot;email&quot;: &quot;ada@cit.edu&quot;, &quot;role&quot;: &quot;LEARNER&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/users/{{userId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Tracks</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/tracks</code></td><td><code>{&quot;title&quot;: &quot;Java Programming&quot;, &quot;language&quot;: &quot;java&quot;, &quot;description&quot;: &quot;Object-oriented programming in Java&quot;}</code></td><td>201 Created; saves <code>{{trackId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/tracks</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/tracks/{{trackId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/tracks/{{trackId}}</code></td><td><code>{&quot;title&quot;: &quot;Java Programming&quot;, &quot;language&quot;: &quot;java&quot;, &quot;description&quot;: &quot;OOP, collections and exceptions&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/tracks/{{trackId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Lessons</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/lessons</code></td><td><code>{&quot;trackId&quot;: {{trackId}}, &quot;title&quot;: &quot;Loops&quot;, &quot;content&quot;: &quot;for and while loops&quot;, &quot;position&quot;: 1}</code></td><td>201 Created; saves <code>{{lessonId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/lessons</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/lessons?trackId={{trackId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/lessons/{{lessonId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/lessons/{{lessonId}}</code></td><td><code>{&quot;trackId&quot;: {{trackId}}, &quot;title&quot;: &quot;Loops and conditions&quot;, &quot;content&quot;: &quot;for, while and if&quot;, &quot;position&quot;: 1}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/lessons/{{lessonId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Goals</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/goals</code></td><td><code>{&quot;userId&quot;: {{userId}}, &quot;trackId&quot;: {{trackId}}, &quot;description&quot;: &quot;Pass the OOP course&quot;, &quot;priorKnowledge&quot;: &quot;Variables and if statements&quot;, &quot;depth&quot;: &quot;STANDARD&quot;}</code></td><td>201 Created; saves <code>{{goalId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/goals</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/goals?userId={{userId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/goals/{{goalId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/goals/{{goalId}}</code></td><td><code>{&quot;userId&quot;: {{userId}}, &quot;trackId&quot;: {{trackId}}, &quot;description&quot;: &quot;Pass the OOP course&quot;, &quot;priorKnowledge&quot;: &quot;Variables and if statements&quot;, &quot;depth&quot;: &quot;IN_DEPTH&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/goals/{{goalId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Roadmaps</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/roadmaps</code></td><td><code>{&quot;goalId&quot;: {{goalId}}, &quot;status&quot;: &quot;ACTIVE&quot;}</code></td><td>201 Created; saves <code>{{roadmapId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/roadmaps</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/roadmaps?goalId={{goalId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/roadmaps/{{roadmapId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/roadmaps/{{roadmapId}}</code></td><td><code>{&quot;goalId&quot;: {{goalId}}, &quot;status&quot;: &quot;ARCHIVED&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/roadmaps/{{roadmapId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Roadmap items</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/roadmap-items</code></td><td><code>{&quot;roadmapId&quot;: {{roadmapId}}, &quot;lessonId&quot;: {{lessonId}}, &quot;position&quot;: 1, &quot;status&quot;: &quot;CURRENT&quot;}</code></td><td>201 Created; saves <code>{{itemId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/roadmap-items</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/roadmap-items?roadmapId={{roadmapId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/roadmap-items/{{itemId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/roadmap-items/{{itemId}}</code></td><td><code>{&quot;roadmapId&quot;: {{roadmapId}}, &quot;lessonId&quot;: {{lessonId}}, &quot;position&quot;: 1, &quot;status&quot;: &quot;DONE&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/roadmap-items/{{itemId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Activities</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/activities</code></td><td><code>{&quot;lessonId&quot;: {{lessonId}}, &quot;statement&quot;: &quot;Print the numbers 1 to 3&quot;, &quot;starterCode&quot;: &quot;&quot;, &quot;referenceSolution&quot;: &quot;for (int i = 1; i &lt;= 3; i++) System.out.print(i + \&quot; \&quot;);&quot;, &quot;difficulty&quot;: &quot;EASY&quot;, &quot;status&quot;: &quot;DRAFT&quot;}</code></td><td>201 Created; saves <code>{{activityId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/activities</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/activities?lessonId={{lessonId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/activities/{{activityId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/activities/{{activityId}}</code></td><td><code>{&quot;lessonId&quot;: {{lessonId}}, &quot;statement&quot;: &quot;Print the numbers 1 to 3&quot;, &quot;starterCode&quot;: &quot;&quot;, &quot;referenceSolution&quot;: &quot;for (int i = 1; i &lt;= 3; i++) System.out.print(i + \&quot; \&quot;);&quot;, &quot;difficulty&quot;: &quot;EASY&quot;, &quot;status&quot;: &quot;VALIDATED&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/activities/{{activityId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Test cases</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/test-cases</code></td><td><code>{&quot;activityId&quot;: {{activityId}}, &quot;input&quot;: &quot;&quot;, &quot;expectedOutput&quot;: &quot;1 2 3&quot;, &quot;hidden&quot;: false}</code></td><td>201 Created; saves <code>{{testId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/test-cases</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/test-cases?activityId={{activityId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/test-cases/{{testId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/test-cases/{{testId}}</code></td><td><code>{&quot;activityId&quot;: {{activityId}}, &quot;input&quot;: &quot;&quot;, &quot;expectedOutput&quot;: &quot;1 2 3&quot;, &quot;hidden&quot;: true}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/test-cases/{{testId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Attempts</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/attempts</code></td><td><code>{&quot;userId&quot;: {{userId}}, &quot;activityId&quot;: {{activityId}}, &quot;code&quot;: &quot;System.out.print(\&quot;1 2 3\&quot;);&quot;, &quot;score&quot;: 100}</code></td><td>201 Created; saves <code>{{attemptId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/attempts</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/attempts?activityId={{activityId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/attempts/{{attemptId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/attempts/{{attemptId}}</code></td><td><code>{&quot;userId&quot;: {{userId}}, &quot;activityId&quot;: {{activityId}}, &quot;code&quot;: &quot;System.out.print(\&quot;1 2 3\&quot;);&quot;, &quot;score&quot;: 90}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/attempts/{{attemptId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section><section class='res'><h3>Test results</h3><table class='steps'><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody><tr><td>Create</td><td><span class='m post'>POST</span></td><td><code>/api/test-results</code></td><td><code>{&quot;attemptId&quot;: {{attemptId}}, &quot;testId&quot;: {{testId}}, &quot;passed&quot;: true, &quot;actualOutput&quot;: &quot;1 2 3&quot;}</code></td><td>201 Created; saves <code>{{resultId}}</code></td></tr><tr><td>List all</td><td><span class='m get'>GET</span></td><td><code>/api/test-results</code></td><td>&nbsp;</td><td>200 OK; array</td></tr><tr><td>List filtered</td><td><span class='m get'>GET</span></td><td><code>/api/test-results?attemptId={{attemptId}}</code></td><td>&nbsp;</td><td>200 OK; only matching rows</td></tr><tr><td>Get by ID</td><td><span class='m get'>GET</span></td><td><code>/api/test-results/{{resultId}}</code></td><td>&nbsp;</td><td>200 OK; one object</td></tr><tr><td>Update</td><td><span class='m put'>PUT</span></td><td><code>/api/test-results/{{resultId}}</code></td><td><code>{&quot;attemptId&quot;: {{attemptId}}, &quot;testId&quot;: {{testId}}, &quot;passed&quot;: false, &quot;actualOutput&quot;: &quot;1 2&quot;}</code></td><td>200 OK; changed fields</td></tr><tr><td>Delete</td><td><span class='m delete'>DELETE</span></td><td><code>/api/test-results/{{resultId}}</code></td><td>&nbsp;</td><td>204 No Content; then GET gives 404</td></tr></tbody></table></section>
+<h3>Error checks</h3>
+<table class="steps"><thead><tr><th>Step</th><th>Method</th><th>URL</th><th>Body</th><th>Expected</th></tr></thead><tbody>
+<tr><td>Validation</td><td><span class="m post">POST</span></td><td><code>/api/users</code></td><td><code>{}</code></td><td>400; <code>fieldErrors</code> lists name, email, role</td></tr>
+<tr><td>Not found</td><td><span class="m get">GET</span></td><td><code>/api/goals/9999</code></td><td>&nbsp;</td><td>404; "Goal 9999 was not found"</td></tr>
+<tr><td>Duplicate</td><td><span class="m post">POST</span></td><td><code>/api/users</code></td><td>same email as an existing user</td><td>409 Conflict</td></tr>
+<tr><td>Missing parent</td><td><span class="m post">POST</span></td><td><code>/api/lessons</code></td><td><code>{"trackId": 9999, "title": "X", "position": 1}</code></td><td>404; "Track 9999 was not found"</td></tr>
+</tbody></table>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: "neutral", fontFamily: "-apple-system, Helvetica, Arial, sans-serif",
+  flowchart: { htmlLabels: true, curve: "basis", nodeSpacing: 34, rankSpacing: 40 },
+  er: { layoutDirection: "TB", minEntityWidth: 90, fontSize: 11 }, sequence: { mirrorActors: false } });
+mermaid.run().then(() => { document.body.setAttribute("data-ready", "1"); });
+</script>
+</body></html>
